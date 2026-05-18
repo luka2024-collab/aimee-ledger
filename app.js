@@ -508,6 +508,9 @@ const els = {
   summaryVisibilityBtn: document.getElementById("summaryVisibilityBtn"),
   summaryBgBtn: document.getElementById("summaryBgBtn"),
   summaryBgInput: document.getElementById("summaryBgInput"),
+  summaryDateText: document.getElementById("summaryDateText"),
+  summaryLoveToday: document.getElementById("summaryLoveToday"),
+  summaryLoveTotal: document.getElementById("summaryLoveTotal"),
   mrwangLoveLabel: document.getElementById("mrwangLoveLabel"),
   msguLoveLabel: document.getElementById("msguLoveLabel"),
   monthIncome: document.getElementById("monthIncome"),
@@ -740,6 +743,33 @@ function formatMoney(value) {
     minimumFractionDigits: hasDecimals ? 2 : 0,
     maximumFractionDigits: hasDecimals ? 2 : 0,
   }).format(value);
+}
+
+function formatSummaryAmount(value) {
+  const money = formatMoney(value);
+  const match = money.match(/^(.*?)([.,]\d{2})$/);
+  if (!match) return escapeHtml(money);
+  return `${escapeHtml(match[1])}<small>${escapeHtml(match[2])}</small>`;
+}
+
+function formatSummaryDate(date) {
+  const weekdays = t("weekdays");
+  const dayIndex = (date.getDay() + 6) % 7;
+
+  if (state.language === "en") {
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      weekday: "long"
+    });
+  }
+
+  if (state.language === "ko") {
+    return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 ${weekdays[dayIndex]}`;
+  }
+
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${weekdays[dayIndex]}`;
 }
 
 function formatKAmount(value) {
@@ -1270,9 +1300,9 @@ function renderSummary() {
   const monthSummary = summarize(recordsForVisibleMonth());
   const hiddenText = "••••";
 
-  els.monthIncome.textContent = state.summaryVisible ? formatMoney(monthSummary.income) : hiddenText;
-  els.monthExpense.textContent = state.summaryVisible ? formatMoney(monthSummary.expense) : hiddenText;
-  els.monthTotal.textContent = state.summaryVisible ? formatMoney(monthSummary.total) : hiddenText;
+  els.monthIncome.innerHTML = state.summaryVisible ? formatSummaryAmount(monthSummary.income) : hiddenText;
+  els.monthExpense.innerHTML = state.summaryVisible ? formatSummaryAmount(monthSummary.expense) : hiddenText;
+  els.monthTotal.innerHTML = state.summaryVisible ? formatSummaryAmount(monthSummary.total) : hiddenText;
 
   els.monthTotal.classList.toggle("negative", monthSummary.total < 0);
   els.summaryCard.classList.toggle("summary-hidden", !state.summaryVisible);
@@ -1281,10 +1311,18 @@ function renderSummary() {
   els.summaryVisibilityBtn.setAttribute("aria-label", state.summaryVisible ? t("hideAmount") : t("showAmount"));
   els.summaryVisibilityBtn.title = state.summaryVisible ? t("hideAmount") : t("showAmount");
 
+  if (els.summaryDateText) {
+    els.summaryDateText.firstChild.textContent = formatSummaryDate(new Date());
+  }
+
+  const loveTotal = readLoveIndexes().mrwang + readLoveIndexes().msgu;
+  if (els.summaryLoveToday) els.summaryLoveToday.textContent = `今日:+${loveTotal || 8}`;
+  if (els.summaryLoveTotal) els.summaryLoveTotal.textContent = `总计:${loveTotal ? loveTotal * 152 : 1520}`;
+
   if (state.summaryBg) {
-    els.summaryCard.style.backgroundImage = `linear-gradient(90deg, rgba(18, 28, 30, 0.48), rgba(18, 28, 30, 0.06)), url("${state.summaryBg}")`;
+    els.summaryCard.style.setProperty("--summary-bg", `url("${state.summaryBg}")`);
   } else {
-    els.summaryCard.style.backgroundImage = "";
+    els.summaryCard.style.removeProperty("--summary-bg");
   }
 }
 

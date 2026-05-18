@@ -1,4 +1,4 @@
-const CACHE_NAME = "aimee-ledger-pwa-v6";
+const CACHE_NAME = "aimee-ledger-pwa-v7";
 
 const APP_FILES = [
   "/",
