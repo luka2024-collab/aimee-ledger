@@ -54,6 +54,7 @@ function installLoginPanel() {
     }
 
     .login-card {
+      position: relative;
       width: min(340px, calc(100vw - 32px));
       padding: 24px;
       border-radius: 22px;
@@ -66,6 +67,30 @@ function installLoginPanel() {
     .login-card h2 {
       margin: 0;
       font-size: 24px;
+    }
+
+    .login-language {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      gap: 4px;
+    }
+
+    .login-language button {
+      width: 34px;
+      height: 28px;
+      border: 0;
+      border-radius: 999px;
+      background: #eef2f7;
+      color: #1f2a37;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .login-language button.active {
+      background: #245ec4;
+      color: #fff;
     }
 
     .login-card input {
@@ -104,16 +129,31 @@ function installLoginPanel() {
   panel.className = "login-panel";
   panel.innerHTML = `
     <form class="login-card" id="loginForm">
-      <h2>Aimee Gu 记账</h2>
-      <input id="loginEmail" type="email" placeholder="邮箱" autocomplete="email" required>
-      <input id="loginPassword" type="password" placeholder="密码，至少6位" autocomplete="current-password" required>
-      <button type="submit">登录</button>
-      <button class="secondary-login" id="registerBtn" type="button">注册新账号</button>
+      <div class="login-language" aria-label="Language">
+        <button type="button" data-login-lang="zh">中</button>
+        <button type="button" data-login-lang="en">EN</button>
+        <button type="button" data-login-lang="ko">한</button>
+      </div>
+      <h2 id="loginTitle"></h2>
+      <input id="loginEmail" type="email" autocomplete="email" required>
+      <input id="loginPassword" type="password" autocomplete="current-password" required>
+      <button id="loginSubmitBtn" type="submit"></button>
+      <button class="secondary-login" id="registerBtn" type="button"></button>
       <p class="login-error" id="loginError"></p>
     </form>
   `;
 
   document.body.appendChild(panel);
+  translateLoginPanel();
+
+  panel.querySelectorAll("[data-login-lang]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.language = button.dataset.loginLang;
+      localStorage.setItem(LANGUAGE_KEY, state.language);
+      translateLoginPanel();
+      if (typeof applyLanguage === "function") applyLanguage();
+    });
+  });
 
   document.getElementById("loginForm").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -154,7 +194,31 @@ function installLoginPanel() {
       return;
     }
 
-    errorBox.textContent = "注册成功，请直接登录。";
+    errorBox.textContent = translations[state.language].registerSuccess;
+  });
+}
+
+function translateLoginPanel() {
+  const panel = document.getElementById("loginPanel");
+  if (!panel || !state || !translations[state.language]) return;
+
+  const strings = translations[state.language];
+  const title = panel.querySelector("#loginTitle");
+  const email = panel.querySelector("#loginEmail");
+  const password = panel.querySelector("#loginPassword");
+  const submit = panel.querySelector("#loginSubmitBtn");
+  const register = panel.querySelector("#registerBtn");
+  const language = panel.querySelector(".login-language");
+
+  if (language) language.setAttribute("aria-label", strings.languageSelect);
+  if (title) title.textContent = strings.loginTitle;
+  if (email) email.placeholder = strings.email;
+  if (password) password.placeholder = strings.password;
+  if (submit) submit.textContent = strings.login;
+  if (register) register.textContent = strings.register;
+
+  panel.querySelectorAll("[data-login-lang]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.loginLang === state.language);
   });
 }
 
@@ -251,6 +315,22 @@ const translations = {
     save: "保存",
     close: "关闭",
     edit: "编辑",
+    loginTitle: "Aimee Gu 记账",
+    email: "邮箱",
+    password: "密码，至少6位",
+    login: "登录",
+    register: "注册新账号",
+    registerSuccess: "注册成功，请直接登录。",
+    cropBackground: "选择背景区域",
+    zoom: "缩放",
+    back: "返回",
+    done: "完成",
+    editAvatar: "编辑头像",
+    chooseBackground: "选择背景图片",
+    summaryDate: (date) => {
+      const week = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"][date.getDay()];
+      return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${week}`;
+    },
     todayButton: (date) => `${date.getMonth() + 1}月${date.getDate()}日`,
     monthTitle: (year, month) => `${year}年${month}月`,
     dateTitle: (date, isToday) => `${isToday ? "今天 · " : ""}${date.getMonth() + 1}月${date.getDate()}日`,
@@ -332,6 +412,24 @@ const translations = {
     save: "Save",
     close: "Close",
     edit: "Edit",
+    loginTitle: "Aimee Gu Ledger",
+    email: "Email",
+    password: "Password, at least 6 characters",
+    login: "Log in",
+    register: "Create account",
+    registerSuccess: "Account created. Please log in.",
+    cropBackground: "Choose background area",
+    zoom: "Zoom",
+    back: "Back",
+    done: "Done",
+    editAvatar: "Edit avatar",
+    chooseBackground: "Choose background image",
+    summaryDate: (date) => date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      weekday: "long"
+    }),
     todayButton: (date) => date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     monthTitle: (year, month) => `${month}/${year}`,
     dateTitle: (date, isToday) => `${isToday ? "Today · " : ""}${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
@@ -413,6 +511,24 @@ const translations = {
     save: "저장",
     close: "닫기",
     edit: "수정",
+    loginTitle: "Aimee Gu 가계부",
+    email: "이메일",
+    password: "비밀번호, 6자 이상",
+    login: "로그인",
+    register: "새 계정 만들기",
+    registerSuccess: "가입되었습니다. 로그인해 주세요.",
+    cropBackground: "배경 영역 선택",
+    zoom: "확대/축소",
+    back: "돌아가기",
+    done: "완료",
+    editAvatar: "프로필 사진 수정",
+    chooseBackground: "배경 이미지 선택",
+    summaryDate: (date) => date.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      weekday: "long"
+    }),
     todayButton: (date) => `${date.getMonth() + 1}월 ${date.getDate()}일`,
     monthTitle: (year, month) => `${year}년 ${month}월`,
     dateTitle: (date, isToday) => `${isToday ? "오늘 · " : ""}${date.getMonth() + 1}월 ${date.getDate()}일`,
@@ -1176,6 +1292,7 @@ function applyLanguage() {
 
   document.documentElement.lang = strings.htmlLang;
   document.title = strings.appTitle;
+  translateLoginPanel();
 
   els.todayBtn.textContent = strings.todayButton(new Date());
   els.todayBtn.setAttribute("aria-label", strings.todayLabel);
@@ -1196,6 +1313,8 @@ function applyLanguage() {
 
   els.inlineCalculator.setAttribute("aria-label", strings.amountCalculator);
   document.querySelector(".chart-controls").setAttribute("aria-label", strings.yearMonthSelect);
+  els.chartYearSelect.setAttribute("aria-label", strings.year);
+  els.chartMonthSelect.setAttribute("aria-label", strings.month);
 
   els.editModal.setAttribute("aria-label", strings.editRecord);
   els.customNoteModal.setAttribute("aria-label", strings.customNote);
@@ -1257,6 +1376,17 @@ function applyLanguage() {
   if (els.messageEditorTitle) {
     els.messageEditorTitle.textContent = state.editMessageId ? strings.editMessage : strings.messageBoard;
   }
+
+  const bgCropperTitle = document.getElementById("bgCropperTitle");
+  const bgCropperZoomLabel = document.getElementById("bgCropperZoomLabel");
+  const closeBgCropperBtn = document.getElementById("closeBgCropperBtn");
+  const cancelBgCropperBtn = document.getElementById("cancelBgCropperBtn");
+  const saveBgCropperBtn = document.getElementById("saveBgCropperBtn");
+  if (bgCropperTitle) bgCropperTitle.textContent = strings.cropBackground;
+  if (bgCropperZoomLabel) bgCropperZoomLabel.textContent = strings.zoom;
+  if (closeBgCropperBtn) closeBgCropperBtn.setAttribute("aria-label", strings.close);
+  if (cancelBgCropperBtn) cancelBgCropperBtn.textContent = strings.back;
+  if (saveBgCropperBtn) saveBgCropperBtn.textContent = strings.done;
 
   renderCategorySelect();
 
@@ -1900,24 +2030,25 @@ function ensureBgCropperModal() {
   const modal = document.createElement("div");
   modal.id = "bgCropperModal";
   modal.className = "modal-backdrop hidden";
+  const strings = translations[state.language];
   modal.innerHTML = `
     <section class="bg-cropper-card">
       <div class="modal-header">
-        <h2>选择背景区域</h2>
-        <button id="closeBgCropperBtn" class="plain-icon" type="button">×</button>
+        <h2 id="bgCropperTitle">${strings.cropBackground}</h2>
+        <button id="closeBgCropperBtn" class="plain-icon" type="button" aria-label="${strings.close}">×</button>
       </div>
 
       <canvas id="bgCropperCanvas" class="bg-cropper-canvas" width="900" height="614"></canvas>
 
       <div class="bg-cropper-tools">
         <label>
-          缩放
+          <span id="bgCropperZoomLabel">${strings.zoom}</span>
           <input id="bgCropperZoom" type="range" min="1" max="3" step="0.01" value="1">
         </label>
 
         <div class="bg-cropper-actions">
-          <button id="cancelBgCropperBtn" class="bg-cropper-cancel" type="button">返回</button>
-          <button id="saveBgCropperBtn" class="bg-cropper-save" type="button">完成</button>
+          <button id="cancelBgCropperBtn" class="bg-cropper-cancel" type="button">${strings.back}</button>
+          <button id="saveBgCropperBtn" class="bg-cropper-save" type="button">${strings.done}</button>
         </div>
       </div>
     </section>
@@ -2746,8 +2877,7 @@ document.addEventListener("click", (event) => {
   function getDateText() {
     const date = state.selectedDate || new Date().toISOString().slice(0, 10);
     const d = new Date(date);
-    const week = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"][d.getDay()];
-    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${week}`;
+    return translations[state.language].summaryDate(d);
   }
 
   function getTodayRecords() {
@@ -2770,11 +2900,11 @@ document.addEventListener("click", (event) => {
   }
 
   function mood(value) {
-    if (value <= 2) return "😴";
-    if (value <= 4) return "😌";
-    if (value <= 6) return "😊";
-    if (value <= 8) return "🥰";
-    return "😍";
+    if (value <= 2) return "😠";
+    if (value <= 4) return "😣";
+    if (value <= 6) return "🙂";
+    if (value <= 8) return "😊";
+    return "🤩";
   }
 
   function currentBg() {
@@ -3259,6 +3389,7 @@ document.addEventListener("click", (event) => {
 
     const totals = getTotals();
     const bg = currentBg();
+    const strings = translations[state.language];
 
     const loveRows = PEOPLE.map((person) => {
       const value = getLoveValue(person);
@@ -3278,7 +3409,7 @@ document.addEventListener("click", (event) => {
           <div class="wa-avatar-wrap">
             <div class="wa-avatar"><img src="${currentAvatar(person)}" alt="${person.name}"></div>
             <input class="wa-avatar-input" id="waAvatarInput-${person.key}" type="file" accept="image/*">
-            <button class="wa-avatar-edit" type="button" data-avatar-person="${person.key}" aria-label="编辑${person.name}头像" title="编辑头像">
+            <button class="wa-avatar-edit" type="button" data-avatar-person="${person.key}" aria-label="${strings.editAvatar}" title="${strings.editAvatar}">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M4 20h4.2L19 9.2 14.8 5 4 15.8V20Z"></path>
                 <path d="M13.8 6 18 10.2"></path>
@@ -3299,7 +3430,7 @@ document.addEventListener("click", (event) => {
     card.innerHTML = `
       <div class="wa-final-card" style="background-image:url('${bg}')">
         <input class="wa-bg-file" id="waBgFileInput" type="file" accept="image/*">
-        <button class="wa-bg-btn" type="button" id="waBgChangeBtn" aria-label="选择背景图片" title="选择背景图片">
+        <button class="wa-bg-btn" type="button" id="waBgChangeBtn" aria-label="${strings.chooseBackground}" title="${strings.chooseBackground}">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path d="M4 7h3l1.5-2h7L17 7h3v12H4z"></path>
             <circle cx="12" cy="13" r="3.5"></circle>
@@ -3307,12 +3438,12 @@ document.addEventListener("click", (event) => {
           </svg>
         </button>
         <div class="wa-final-content">
-          <div class="wa-title">今日收支</div>
+          <div class="wa-title">${strings.todaySummary}</div>
           <div class="wa-date">${getDateText()}</div>
           <div class="wa-money-grid">
-            <div class="wa-money-item"><div class="wa-money-label">收入</div><div class="wa-money-value">${money(totals.income)}</div></div>
-            <div class="wa-money-item"><div class="wa-money-label">支出</div><div class="wa-money-value">${money(totals.expense)}</div></div>
-            <div class="wa-money-item"><div class="wa-money-label">结余</div><div class="wa-money-value">${money(totals.balance)}</div></div>
+            <div class="wa-money-item"><div class="wa-money-label">${strings.income}</div><div class="wa-money-value">${money(totals.income)}</div></div>
+            <div class="wa-money-item"><div class="wa-money-label">${strings.expense}</div><div class="wa-money-value">${money(totals.expense)}</div></div>
+            <div class="wa-money-item"><div class="wa-money-label">${strings.balance}</div><div class="wa-money-value">${money(totals.balance)}</div></div>
           </div>
         </div>
         <div class="wa-love-glass">${loveRows}</div>
