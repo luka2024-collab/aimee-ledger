@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>日历记账</title>
+
+    <link rel="stylesheet" href="styles.css">
+
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#245ec4">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Aimee Gu记账">
+    <link rel="apple-touch-icon" href="aimee-gu.jpg">
+
+    <style>
+      .app-header {
+        position: relative !important;
+        min-height: 250px !important;
+        grid-template-columns: 112px minmax(0, 1fr) 112px !important;
+        justify-items: center !important;
+        column-gap: 8px !important;
+        padding-inline: 0 !important;
+      }
+
+      html,
+      body,
+      button,
+      input,
+      select {
+        touch-action: manipulation !important;
+      }
+
+      .right-note-board {
+        position: absolute !important;
+        top: 46px !important;
+        right: 0 !important;
+        width: 112px !important;
+        height: 170px !important;
+        z-index: 18 !important;
+        margin: 0 !important;
+        padding: 8px !important;
+        border: 1px solid var(--line) !important;
+        border-radius: 14px !important;
+        background: color-mix(in srgb, var(--surface) 88%, var(--accent) 12%) !important;
+        box-shadow: 0 10px 24px rgba(24, 35, 30, 0.12) !important;
+      }
+
+      .right-note-title {
+        margin: 0 0 6px !important;
+        color: var(--accent) !important;
+        font-size: 12px !important;
+        font-weight: 900 !important;
+        text-align: center !important;
+      }
+
+      .right-note-list {
+        height: 112px !important;
+        overflow: hidden !important;
+        border-radius: 10px !important;
+        background: rgba(255, 255, 255, 0.5) !important;
+        padding: 6px !important;
+        cursor: pointer !important;
+      }
+
+      .right-note-list .message-track {
+        display: grid !important;
+        gap: 5px !important;
+        min-width: 0 !important;
+        padding: 0 !important;
+        animation: none !important;
+      }
+
+      .right-note-list .message-track.is-scrolling {
+        animation: message-scroll-y 16s linear infinite !important;
+      }
+
+      .right-note-list .message-pill,
+      .right-note-list .message-empty {
+        display: grid !important;
+        grid-template-columns: 20px minmax(0, 1fr) !important;
+        align-items: center !important;
+        gap: 4px !important;
+        width: 100% !important;
+        min-height: 22px !important;
+        height: 22px !important;
+        color: var(--ink) !important;
+        font-size: var(--fs-caption) !important;
+        line-height: 1 !important;
+        font-weight: 800 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+      }
+
+      .right-note-list .message-pill strong {
+        width: 20px !important;
+        height: 20px !important;
+        min-width: 20px !important;
+        display: inline-grid !important;
+        place-items: center !important;
+        border-radius: 50% !important;
+        background: var(--accent) !important;
+        color: #fff !important;
+        font-size: var(--fs-mini) !important;
+        text-align: center !important;
+      }
+
+      .message-text-window {
+        display: block !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        line-height: 1 !important;
+      }
+
+      .message-text-marquee {
+        display: inline-block !important;
+        min-width: max-content !important;
+        padding-left: 100% !important;
+        animation: message-scroll-x 9s linear infinite !important;
+        white-space: nowrap !important;
+        line-height: 1 !important;
+      }
+
+      @keyframes message-scroll-x {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(-100%);
+        }
+      }
+
+      @keyframes message-scroll-y {
+        from {
+          transform: translateY(0);
+        }
+        to {
+          transform: translateY(-50%);
+        }
+      }
+
+      .right-note-add {
+        width: 100% !important;
+        height: 28px !important;
+        margin-top: 7px !important;
+        border: 0 !important;
+        border-radius: 10px !important;
+        background: var(--accent) !important;
+        color: #fff !important;
+        font-size: 20px !important;
+        font-weight: 900 !important;
+        line-height: 1 !important;
+      }
+
+      .message-editor-form {
+        display: grid !important;
+        gap: 10px !important;
+      }
+
+      .message-editor-form input {
+        height: 46px !important;
+      }
+
+      .message-editor-form button {
+        height: 42px !important;
+        border: 0 !important;
+        border-radius: 10px !important;
+        background: var(--accent) !important;
+        color: #fff !important;
+        font-weight: 900 !important;
+      }
+
+      .header-tools {
+        display: flex !important;
+        justify-content: flex-end !important;
+        align-items: flex-start !important;
+        gap: 6px !important;
+        width: 112px !important;
+      }
+
+      .globe-button {
+        order: 2 !important;
+        border: 2px solid #fff !important;
+        background:
+          radial-gradient(circle at 28% 28%, rgba(255, 255, 255, 0.85) 0 8%, transparent 9%),
+          radial-gradient(ellipse at 38% 42%, #58d46d 0 18%, transparent 19%),
+          radial-gradient(ellipse at 66% 36%, #abe56d 0 13%, transparent 14%),
+          radial-gradient(ellipse at 64% 68%, #32c58b 0 18%, transparent 19%),
+          radial-gradient(circle at 50% 50%, #58caff 0 64%, #1c75d8 65% 100%) !important;
+        overflow: hidden !important;
+      }
+
+      .wa-image-button {
+        width: 92px !important;
+        height: 92px !important;
+        border: 1px solid var(--line) !important;
+        border-radius: 50% !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        background: #fff !important;
+        box-shadow: 0 8px 20px rgba(24, 35, 30, 0.1) !important;
+      }
+
+      .wa-image-button img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        display: block !important;
+      }
+
+      .left-header-stack {
+        display: grid !important;
+        justify-items: center !important;
+        gap: 8px !important;
+        width: 112px !important;
+      }
+
+      .weather-contact {
+        display: grid !important;
+        justify-items: center !important;
+        gap: 4px !important;
+      }
+
+      .contact-label {
+        color: var(--ink) !important;
+        font-size: 11px !important;
+        font-weight: 900 !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
+      }
+
+      .contact-finger {
+        color: #f6bc2f !important;
+        font-size: 13px !important;
+        text-shadow: 0 1px 0 rgba(92, 57, 0, 0.2) !important;
+      }
+
+      .love-panel {
+        display: grid !important;
+        gap: 8px !important;
+        padding: 12px !important;
+        justify-items: center !important;
+      }
+
+      .love-row {
+        display: grid !important;
+        grid-template-columns: 142px max-content 18px !important;
+        align-items: center !important;
+        gap: 5px !important;
+        width: fit-content !important;
+        max-width: 100% !important;
+        justify-content: center !important;
+      }
+
+      .love-row span {
+        display: grid !important;
+        grid-template-columns: 1fr auto !important;
+        width: 142px !important;
+        font-size: 13px !important;
+        font-weight: 900 !important;
+        white-space: nowrap !important;
+      }
+
+      .love-row span b {
+        font: inherit !important;
+        text-align: right !important;
+      }
+
+      .love-row span i {
+        width: 12px !important;
+        font-style: normal !important;
+        text-align: center !important;
+      }
+
+      .love-hearts {
+        display: flex !important;
+        align-items: center !important;
+        flex-wrap: nowrap !important;
+        gap: 0 !important;
+        min-width: 0 !important;
+        justify-content: flex-start !important;
+        overflow: visible !important;
+        white-space: nowrap !important;
+      }
+
+      .love-heart {
+        border: 0 !important;
+        background: transparent !important;
+        color: #e53958 !important;
+        padding: 0 !important;
+        width: 17px !important;
+        height: 17px !important;
+        min-width: 17px !important;
+        display: inline-grid !important;
+        place-items: center !important;
+        box-shadow: none !important;
+      }
+
+      .love-heart svg {
+        width: 16px !important;
+        height: 16px !important;
+        display: block !important;
+        overflow: visible !important;
+      }
+
+      .love-heart path {
+        stroke: #e53958 !important;
+        stroke-width: 2.2 !important;
+        stroke-linejoin: round !important;
+      }
+
+      .love-heart.is-filled path {
+        fill: #e53958 !important;
+      }
+
+      .love-heart.is-empty path {
+        fill: transparent !important;
+      }
+
+      .love-mood {
+        font-style: normal !important;
+        font-size: 15px !important;
+        text-align: center !important;
+        line-height: 1 !important;
+      }
+
+      #dateInput,
+      #editDateInput,
+      #categorySelect,
+      #editCategorySelect,
+      .entry-form label,
+      .wide {
+        min-width: 0 !important;
+        max-width: 100% !important;
+      }
+
+      #dateInput,
+      #categorySelect {
+        box-sizing: border-box !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        inline-size: 100% !important;
+        max-inline-size: 100% !important;
+        height: 42px !important;
+        border: 1px solid #cad5cf !important;
+        border-radius: 8px !important;
+      }
+
+      #dateInput {
+        display: block !important;
+        -webkit-appearance: none !important;
+        appearance: none !important;
+      }
+
+      .weather-widget small,
+      .weather-widget em,
+      .contact-label,
+      label,
+      .summary-bottom,
+      .weekday-row,
+      .day-stats,
+      .record-meta,
+      .modal-kicker,
+      .legend-item,
+      .message-full-item,
+      .empty-state {
+        font-size: var(--fs-caption) !important;
+      }
+
+      .weather-widget strong,
+      .summary-title,
+      .love-row span,
+      .type-toggle button,
+      .primary-button,
+      input,
+      .entry-form select,
+      .inline-calculator-display,
+      .chart-controls select,
+      .day-header h2,
+      .modal-header h2,
+      .right-note-title {
+        font-size: var(--fs-body) !important;
+      }
+
+      .brand-name {
+        font-size: var(--fs-display) !important;
+      }
+
+      #monthTotal,
+      .calculator-display {
+        font-size: var(--fs-number) !important;
+      }
+
+      .summary-balance-label,
+      .summary-bottom strong,
+      .edit-record-btn,
+      .record-amount,
+      .calendar-toolbar h2,
+      .chart-panel h2,
+      .day-panel h2 {
+        font-size: var(--fs-title) !important;
+      }
+
+      .day-number {
+        font-size: var(--fs-caption) !important;
+      }
+
+      .day-money {
+        font-size: 8px !important;
+      }
+
+      @media (max-width: 360px) {
+        .right-note-board {
+          width: 100px !important;
+          right: 0 !important;
+        }
+
+        .app-header {
+          min-height: 245px !important;
+        }
+
+        .love-row {
+          grid-template-columns: 1fr !important;
+          justify-items: center !important;
+        }
+
+        .love-row span {
+          width: auto !important;
+          text-align: center !important;
+        }
+
+        .love-hearts {
+          justify-content: center !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="phone-shell">
+      <header class="app-header">
+        <div class="left-header-stack">
+          <button id="weatherWidget" class="weather-widget" type="button" aria-label="实时天气" title="实时天气">
+            <span id="weatherIcon">--</span>
+            <strong id="weatherTemp">--°</strong>
+            <small id="weatherText">天气</small>
+            <em id="weatherLocation">--</em>
+            <small id="weatherDetail" hidden></small>
+          </button>
+
+          <div class="weather-contact">
+            <button id="whatsappBtn" class="wa-image-button" type="button" aria-label="WhatsApp" title="WhatsApp">
+              <img src="wang.jpeg.jpeg" alt="WA">
+            </button>
+            <span class="contact-label"><span data-i18n="contactMe">联系我</span> <span class="contact-finger" aria-hidden="true">🫰🏻</span></span>
+          </div>
+        </div>
+
+        <div class="brand-block">
+          <img class="profile-photo" src="aimee-gu.jpg" alt="Aimee Gu">
+          <p class="brand-name" data-i18n="appTitle">Aimee Gu</p>
+          <button id="todayBtn" class="today-date-button" type="button" aria-label="回到今天" title="回到今天">5月18日</button>
+        </div>
+
+        <div class="header-tools">
+          <button id="themeBtn" class="theme-button" type="button" aria-label="主题" title="主题"></button>
+
+          <button id="languageBtn" class="globe-button" type="button" aria-label="语言" title="语言">
+            <span></span>
+          </button>
+        </div>
+
+        <section class="right-note-board" aria-label="留言板">
+          <h2 class="right-note-title" data-i18n="messageBoard">留言板</h2>
+          <div class="right-note-list">
+            <div id="messageTrack" class="message-track"></div>
+          </div>
+          <button id="openMessageEditor" class="right-note-add" type="button" data-i18n-aria="addMessage">＋</button>
+        </section>
+      </header>
+
+      <div id="themeMenu" class="floating-menu hidden" aria-label="主题选择"></div>
+
+      <div id="languageMenu" class="floating-menu hidden" aria-label="语言选择">
+        <button type="button" data-lang="zh">中文</button>
+        <button type="button" data-lang="en">English</button>
+        <button type="button" data-lang="ko">한국어</button>
+      </div>
+
+      <section class="summary-grid summary-hero" aria-label="本月汇总" data-i18n-aria="monthlySummary">
+        <article class="summary-card total">
+          <input id="summaryBgInput" class="summary-bg-input" type="file" accept="image/*">
+
+          <button id="summaryBgBtn" class="summary-bg-btn" type="button" aria-label="更换背景图片" title="更换背景图片">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M4 5.5h16v13H4z"></path>
+              <path d="M7 15l3.2-3.2 2.3 2.3 2.2-2.8L19 16"></path>
+              <circle cx="16.5" cy="8.5" r="1.4"></circle>
+            </svg>
+          </button>
+
+          <div class="summary-main">
+            <span class="summary-title" data-i18n="todaySummary">今日收支</span>
+            <span class="summary-balance-line">
+              <span class="summary-balance-label" data-i18n="balance">结余</span>
+              <button id="summaryVisibilityBtn" class="summary-eye-btn" type="button" aria-label="隐藏金额" title="隐藏金额"></button>
+            </span>
+            <strong id="monthTotal">¥0</strong>
+          </div>
+
+          <div class="summary-bottom">
+            <span><b data-i18n="totalIncome">总收入</b> <strong id="monthIncome">¥0</strong></span>
+            <span><b data-i18n="totalExpense">总开支</b> <strong id="monthExpense">¥0</strong></span>
+          </div>
+        </article>
+      </section>
+
+      <section class="love-strip love-panel" aria-label="爱情指数">
+        <div class="love-row">
+          <span><b id="mrwangLoveLabel">MrWang的爱情指数</b><i>：</i></span>
+          <strong class="love-hearts" data-love-group="mrwang"></strong>
+          <em class="love-mood" id="mrwangMood">💗</em>
+        </div>
+
+        <div class="love-row">
+          <span><b id="msguLoveLabel">MsGu的爱情指数</b><i>：</i></span>
+          <strong class="love-hearts" data-love-group="msgu"></strong>
+          <em class="love-mood" id="msguMood">💗</em>
+        </div>
+      </section>
+
+      <section class="entry-panel" aria-label="新增记账" data-i18n-aria="newEntry">
+        <div class="type-toggle" role="group" aria-label="记账类型" data-i18n-aria="entryType">
+          <button id="incomeType" class="active" type="button" data-type="income" data-i18n="income">收入</button>
+          <button id="expenseType" type="button" data-type="expense" data-i18n="expense">开支</button>
+        </div>
+
+        <form id="entryForm" class="entry-form">
+          <label class="wide">
+            <span data-i18n="date">日期</span>
+            <input id="dateInput" type="date" required>
+          </label>
+
+          <label class="wide">
+            <span data-i18n="note">备注</span>
+            <select id="categorySelect"></select>
+          </label>
+
+          <label class="wide">
+            <span data-i18n="amount">金额</span>
+            <input id="amountInput" type="hidden" required>
+            <button id="amountDisplay" class="inline-calculator-display" type="button">0</button>
+          </label>
+
+          <button class="primary-button wide" type="submit" data-i18n="addRecord">记一笔</button>
+        </form>
+
+        <div id="inlineCalculator" class="inline-calculator hidden" aria-label="金额计算器">
+          <button type="button" data-main-calc="7">7</button>
+          <button type="button" data-main-calc="8">8</button>
+          <button type="button" data-main-calc="9">9</button>
+          <button type="button" data-main-calc="/">÷</button>
+          <button type="button" data-main-calc="4">4</button>
+          <button type="button" data-main-calc="5">5</button>
+          <button type="button" data-main-calc="6">6</button>
+          <button type="button" data-main-calc="*">×</button>
+          <button type="button" data-main-calc="1">1</button>
+          <button type="button" data-main-calc="2">2</button>
+          <button type="button" data-main-calc="3">3</button>
+          <button type="button" data-main-calc="-">−</button>
+          <button type="button" data-main-calc="0">0</button>
+          <button type="button" data-main-calc=".">.</button>
+          <button type="button" data-main-calc="back">⌫</button>
+          <button type="button" data-main-calc="+">+</button>
+          <button type="button" data-main-calc="clear">C</button>
+          <button class="equals-key" type="button" data-main-calc="=">=</button>
+        </div>
+      </section>
+
+      <section class="calendar-panel" aria-label="日历" data-i18n-aria="calendar">
+        <div class="calendar-toolbar">
+          <button id="prevMonth" class="icon-button" type="button" aria-label="上个月" title="上个月">‹</button>
+          <h2 id="monthTitle">2026年5月</h2>
+          <button id="nextMonth" class="icon-button" type="button" aria-label="下个月" title="下个月">›</button>
+        </div>
+
+        <div id="weekdayRow" class="weekday-row" aria-hidden="true"></div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+      </section>
+
+      <section class="chart-panel" aria-label="开支占比" data-i18n-aria="expenseBreakdown">
+        <div class="chart-header">
+          <h2 data-i18n="expenseBreakdown">开支占比</h2>
+          <span id="chartTotal">¥0.00</span>
+        </div>
+
+        <div class="chart-controls" aria-label="年月选择">
+          <select id="chartYearSelect" aria-label="年份"></select>
+          <select id="chartMonthSelect" aria-label="月份"></select>
+        </div>
+
+        <div class="donut-wrap">
+          <div id="expenseDonut" class="expense-donut" aria-hidden="true"></div>
+          <div id="expenseLegend" class="expense-legend"></div>
+        </div>
+      </section>
+
+      <section class="day-panel" aria-label="当日明细" data-i18n-aria="dayDetails">
+        <div class="day-header">
+          <div>
+            <p id="selectedDateText">今天</p>
+            <h2 id="dayTotal">总计 ¥0.00</h2>
+          </div>
+
+          <div class="day-stats">
+            <span id="dayIncome">收 ¥0.00</span>
+            <span id="dayExpense">支 ¥0.00</span>
+          </div>
+        </div>
+
+        <div id="entryList" class="entry-list"></div>
+      </section>
+
+      <div id="editModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="编辑记录">
+        <section class="calculator-modal">
+          <div class="modal-header">
+            <h2 data-i18n="editRecord">编辑记录</h2>
+            <button id="closeEditBtn" class="plain-icon" type="button" aria-label="关闭">×</button>
+          </div>
+
+          <div class="edit-grid">
+            <div class="type-toggle compact" role="group" aria-label="记录类型">
+              <button id="editIncomeType" type="button" data-type="income" data-i18n="income">收入</button>
+              <button id="editExpenseType" type="button" data-type="expense" data-i18n="expense">开支</button>
+            </div>
+
+            <label>
+              <span data-i18n="date">日期</span>
+              <input id="editDateInput" type="date">
+            </label>
+
+            <label class="wide">
+              <span data-i18n="note">备注</span>
+              <select id="editCategorySelect"></select>
+            </label>
+          </div>
+
+          <div id="calculatorDisplay" class="calculator-display">0</div>
+
+          <div class="calculator-grid">
+            <button type="button" data-calc="7">7</button>
+            <button type="button" data-calc="8">8</button>
+            <button type="button" data-calc="9">9</button>
+            <button type="button" data-calc="/">÷</button>
+            <button type="button" data-calc="4">4</button>
+            <button type="button" data-calc="5">5</button>
+            <button type="button" data-calc="6">6</button>
+            <button type="button" data-calc="*">×</button>
+            <button type="button" data-calc="1">1</button>
+            <button type="button" data-calc="2">2</button>
+            <button type="button" data-calc="3">3</button>
+            <button type="button" data-calc="-">−</button>
+            <button type="button" data-calc="0">0</button>
+            <button type="button" data-calc=".">.</button>
+            <button type="button" data-calc="back">⌫</button>
+            <button type="button" data-calc="+">+</button>
+            <button type="button" data-calc="clear">C</button>
+            <button class="equals-key" type="button" data-calc="=">=</button>
+            <button id="deleteRecordBtn" class="danger-key" type="button" data-i18n="deleteRecord">删除记录</button>
+            <button id="saveEditBtn" class="save-key" type="button" data-i18n="save">保存</button>
+          </div>
+        </section>
+      </div>
+
+      <div id="customNoteModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="自定义备注">
+        <section class="custom-note-modal">
+          <div class="modal-header">
+            <h2 data-i18n="customNote">自定义备注</h2>
+            <button id="closeCustomNoteBtn" class="plain-icon" type="button" aria-label="关闭">×</button>
+          </div>
+
+          <input id="customNoteInput" type="text" maxlength="30" autocomplete="off">
+          <button id="saveCustomNoteBtn" class="primary-button" type="button" data-i18n="save">保存</button>
+        </section>
+      </div>
+
+      <div id="dayDetailModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="日期详情">
+        <section class="day-detail-modal">
+          <div class="modal-header">
+            <div>
+              <p id="modalDateText" class="modal-kicker">今天</p>
+              <h2 id="modalDayTotal">总计 ¥0</h2>
+            </div>
+
+            <button id="closeDayDetailBtn" class="plain-icon" type="button" aria-label="关闭">×</button>
+          </div>
+
+          <div class="modal-day-stats">
+            <span id="modalDayIncome">收 ¥0</span>
+            <span id="modalDayExpense">支 ¥0</span>
+          </div>
+
+          <div id="modalEntryList" class="entry-list"></div>
+        </section>
+      </div>
+
+      <div id="messageBoardModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="留言板">
+        <section class="custom-note-modal">
+          <div class="modal-header">
+            <h2 id="messageBoardTitle" data-i18n="messageBoard">留言板</h2>
+            <button id="closeMessageBoard" class="plain-icon" type="button" aria-label="关闭">×</button>
+          </div>
+
+          <div id="messageFullList" class="message-full-list"></div>
+        </section>
+      </div>
+
+      <div id="messageEditorModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="编辑留言">
+        <section class="custom-note-modal">
+          <div class="modal-header">
+            <h2 id="messageEditorTitle" data-i18n="editMessage">编辑留言</h2>
+            <button id="closeMessageEditor" class="plain-icon" type="button" aria-label="关闭">×</button>
+          </div>
+
+          <form id="messageForm" class="message-editor-form">
+            <input id="messageInput" type="text" maxlength="80" autocomplete="off" data-i18n-placeholder="messagePlaceholder" placeholder="随时记录任何内容">
+            <button id="messageSubmitBtn" type="submit" data-i18n="addMessage">添加</button>
+          </form>
+        </section>
+      </div>
+    </main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("sw.js");
+        });
+      }
+    </script>
+
+    <script>
+      document.addEventListener("touchend", (function () {
+        let lastTouchEnd = 0;
+        return function (event) {
+          const now = Date.now();
+          if (now - lastTouchEnd <= 300) {
+            event.preventDefault();
+          }
+          lastTouchEnd = now;
+        };
+      })(), { passive: false });
+
+      window.addEventListener("DOMContentLoaded", function () {
+        const LOVE_KEYS = {
+          mrwang: "love-index-mrwang-10-v3",
+          msgu: "love-index-msgu-10-v3"
+        };
+
+        function moodIcon(value) {
+          if (value >= 1 && value <= 3) return "😠";
+          if (value >= 4 && value <= 6) return "🙂";
+          if (value >= 7 && value <= 8) return "😊";
+          if (value >= 9 && value <= 10) return "🤩";
+          return "💗";
+        }
+
+        function renderLove(groupName) {
+          const box = document.querySelector(`[data-love-group="${groupName}"]`);
+          const mood = document.getElementById(groupName === "mrwang" ? "mrwangMood" : "msguMood");
+          if (!box || !mood) return;
+
+          const value = Number(localStorage.getItem(LOVE_KEYS[groupName]) || "0");
+          box.innerHTML = "";
+
+          for (let i = 1; i <= 10; i++) {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = i <= value ? "love-heart is-filled" : "love-heart is-empty";
+            btn.setAttribute("aria-label", String(i));
+            btn.innerHTML = '<svg viewBox="0 0 24 22" aria-hidden="true" focusable="false"><path d="M12 20.4C7.6 16.6 2.5 12.2 2.5 7.2C2.5 4.3 4.7 2.1 7.5 2.1C9.2 2.1 10.8 2.9 12 4.3C13.2 2.9 14.8 2.1 16.5 2.1C19.3 2.1 21.5 4.3 21.5 7.2C21.5 12.2 16.4 16.6 12 20.4Z"></path></svg>';
+            btn.addEventListener("click", function () {
+              localStorage.setItem(LOVE_KEYS[groupName], String(i));
+              renderLove(groupName);
+              if (window.saveServerData) window.saveServerData();
+            });
+            box.appendChild(btn);
+          }
+
+          mood.textContent = moodIcon(value);
+        }
+
+        document.addEventListener("ledger-love-indexes-updated", function () {
+          renderLove("mrwang");
+          renderLove("msgu");
+        });
+
+        renderLove("mrwang");
+        renderLove("msgu");
+      });
+    </script>
+  </body>
+</html>
