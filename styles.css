@@ -453,7 +453,7 @@ h2 {
   justify-self: center;
 }
 
-.summary-hero {
+.summary-grid {
   display: block;
   margin-bottom: 12px;
 }
@@ -628,233 +628,119 @@ h2 {
 
 .summary-card {
   position: relative;
+  min-height: 124px;
   overflow: hidden;
-
-  border-radius: 30px;
-  padding: 28px;
-  min-height: 360px;
-
-  background-image:
-    linear-gradient(
-      rgba(255, 255, 255, 0.03),
-      rgba(255, 255, 255, 0.03)
-    ),
-    var(--summary-bg, linear-gradient(135deg, #78a7c8, #f3cf9e));
-
+  padding: 12px 18px 12px;
+  color: #fff;
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1)),
+    linear-gradient(135deg, #58646a, #bd8e7a);
   background-size: cover;
   background-position: center;
-
-  box-shadow:
-    0 20px 50px rgba(0, 0, 0, 0.12);
-}
-
-.summary-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-
-  background:
-    linear-gradient(
-      rgba(255, 255, 255, 0.04),
-      rgba(255, 255, 255, 0.02)
-    );
-
-  pointer-events: none;
 }
 
 .summary-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.08), transparent 58%);
+  pointer-events: none;
+}
+
+.summary-card::before {
   content: none;
+  position: absolute;
+  inset: 0;
+  background: none;
+  pointer-events: none;
 }
 
 .summary-main,
-.summary-grid,
-.summary-love {
+.summary-bottom {
   position: relative;
   z-index: 2;
 }
 
-.summary-title {
-  font-family:
-    "Noto Sans SC",
-    sans-serif;
-
-  font-size: 54px;
-  font-weight: 900;
-
-  color:
-    rgba(255, 255, 255, 0.95);
-
-  letter-spacing: 0;
-
-  text-shadow:
-    0 3px 16px rgba(0, 0, 0, 0.25);
-
-  line-height: 1.1;
-}
-
-.summary-date {
-  margin-top: 8px;
-
-  font-family:
-    "Inter",
-    sans-serif;
-
-  font-size: 20px;
-
-  color:
-    rgba(255, 255, 255, 0.78);
-
-  text-shadow:
-    0 2px 12px rgba(0, 0, 0, 0.3);
-
-  letter-spacing: 0;
-}
-
-.summary-grid {
-  display: grid;
-
-  grid-template-columns:
-    repeat(3, 1fr);
-
-  margin-top: 90px;
-}
-
-.summary-item {
-  border-right:
-    1px solid rgba(255, 255, 255, 0.25);
-
-  padding: 0 26px;
-}
-
-.summary-item:last-child {
-  border-right: none;
-}
-
-.summary-label {
-  font-size: 20px;
-
-  font-weight: 500;
-
-  font-family:
-    "Noto Sans SC",
-    sans-serif;
-
-  color:
-    rgba(255, 255, 255, 0.72);
-
-  text-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.35);
-}
-
-.summary-value {
-  margin-top: 16px;
-
-  font-family:
-    "Inter",
-    sans-serif;
-
+.summary-card span {
+  display: block;
+  color: inherit;
   font-weight: 800;
+}
 
-  font-size: 64px;
-
-  line-height: 1;
-
-  color:
-    rgba(255, 255, 255, 0.88);
-
+.summary-card h2,
+.summary-card .summary-title,
+.summary-card .summary-value,
+.summary-card .summary-label,
+.summary-card .summary-row,
+.summary-card .summary-total,
+.summary-card .summary-balance-label,
+.summary-card .summary-bottom,
+.summary-card .summary-bottom span,
+.summary-card .summary-bottom b,
+.summary-card .summary-bottom strong,
+.summary-card #monthTotal {
+  color: rgba(255, 255, 255, 0.88);
   text-shadow:
-    0 2px 12px rgba(0, 0, 0, 0.35);
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 0 10px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(2px);
+}
 
+.summary-title {
+  margin-bottom: 9px;
+  font-size: 19px;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+.summary-balance-line {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.summary-balance-label {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+#monthTotal {
+  display: block;
+  color: #fff;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: 0;
   overflow-wrap: anywhere;
 }
 
-.summary-value small {
-  font-size: 34px;
-  opacity: 0.7;
-}
-
-.summary-love {
-  position: absolute;
-
-  left: 24px;
-  right: 24px;
-  bottom: 20px;
-
+.summary-bottom {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-
-  padding: 14px 22px;
-
-  border-radius: 22px;
-
-  background:
-    rgba(255, 255, 255, 0.18);
-
-  backdrop-filter:
-    blur(18px);
-
-  border:
-    1px solid rgba(255, 255, 255, 0.14);
-
-  color:
-    rgba(255, 255, 255, 0.92);
-
-  text-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.3);
-
-  font-family:
-    "Noto Sans SC",
-    "Inter",
-    sans-serif;
-
-  font-size: 18px;
-  font-weight: 800;
+  gap: 18px;
+  margin-top: 9px;
+  font-size: 12px;
+  line-height: 1.2;
 }
 
-@media (max-width: 560px) {
-  .summary-card {
-    border-radius: 22px;
-    min-height: 300px;
-    padding: 22px;
-  }
+.summary-bottom span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+}
 
-  .summary-title {
-    font-size: 38px;
-  }
+.summary-bottom b {
+  font: inherit;
+}
 
-  .summary-date {
-    font-size: 15px;
-  }
-
-  .summary-grid {
-    margin-top: 54px;
-  }
-
-  .summary-item {
-    padding: 0 8px;
-  }
-
-  .summary-label {
-    font-size: 14px;
-  }
-
-  .summary-value {
-    font-size: 28px;
-  }
-
-  .summary-value small {
-    font-size: 17px;
-  }
-
-  .summary-love {
-    left: 16px;
-    right: 16px;
-    bottom: 16px;
-    padding: 10px 12px;
-    border-radius: 16px;
-    font-size: 13px;
-  }
+.summary-bottom strong {
+  color: #fff;
+  font-size: 13px;
+  overflow-wrap: anywhere;
 }
 
 .summary-eye-btn,
@@ -1702,4 +1588,48 @@ input,
   .today-date-button {
     font-size: var(--fs-caption) !important;
   }
+}
+/* 最终修复版 */
+
+.summary-card{
+  width:100% !important;
+  min-height:320px !important;
+  height:auto !important;
+}
+
+.home-love-glass-panel{
+  left:16px !important;
+  right:16px !important;
+  bottom:16px !important;
+
+  width:auto !important;
+
+  background:rgba(255,255,255,.85)!important;
+  backdrop-filter:blur(24px)!important;
+}
+
+.home-love-row{
+  display:grid!important;
+
+  grid-template-columns:
+  48px
+  90px
+  minmax(0,1fr)
+  30px!important;
+
+  align-items:center!important;
+}
+
+.home-love-hearts{
+  display:flex!important;
+  flex-wrap:wrap!important;
+}
+
+.home-love-heart{
+  font-size:20px!important;
+}
+
+.home-love-avatar{
+  width:46px!important;
+  height:46px!important;
 }

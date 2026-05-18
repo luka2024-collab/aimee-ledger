@@ -508,9 +508,6 @@ const els = {
   summaryVisibilityBtn: document.getElementById("summaryVisibilityBtn"),
   summaryBgBtn: document.getElementById("summaryBgBtn"),
   summaryBgInput: document.getElementById("summaryBgInput"),
-  summaryDateText: document.getElementById("summaryDateText"),
-  summaryLoveToday: document.getElementById("summaryLoveToday"),
-  summaryLoveTotal: document.getElementById("summaryLoveTotal"),
   mrwangLoveLabel: document.getElementById("mrwangLoveLabel"),
   msguLoveLabel: document.getElementById("msguLoveLabel"),
   monthIncome: document.getElementById("monthIncome"),
@@ -743,33 +740,6 @@ function formatMoney(value) {
     minimumFractionDigits: hasDecimals ? 2 : 0,
     maximumFractionDigits: hasDecimals ? 2 : 0,
   }).format(value);
-}
-
-function formatSummaryAmount(value) {
-  const money = formatMoney(value);
-  const match = money.match(/^(.*?)([.,]\d{2})$/);
-  if (!match) return escapeHtml(money);
-  return `${escapeHtml(match[1])}<small>${escapeHtml(match[2])}</small>`;
-}
-
-function formatSummaryDate(date) {
-  const weekdays = t("weekdays");
-  const dayIndex = (date.getDay() + 6) % 7;
-
-  if (state.language === "en") {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      weekday: "long"
-    });
-  }
-
-  if (state.language === "ko") {
-    return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 ${weekdays[dayIndex]}`;
-  }
-
-  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${weekdays[dayIndex]}`;
 }
 
 function formatKAmount(value) {
@@ -1300,9 +1270,9 @@ function renderSummary() {
   const monthSummary = summarize(recordsForVisibleMonth());
   const hiddenText = "••••";
 
-  els.monthIncome.innerHTML = state.summaryVisible ? formatSummaryAmount(monthSummary.income) : hiddenText;
-  els.monthExpense.innerHTML = state.summaryVisible ? formatSummaryAmount(monthSummary.expense) : hiddenText;
-  els.monthTotal.innerHTML = state.summaryVisible ? formatSummaryAmount(monthSummary.total) : hiddenText;
+  els.monthIncome.textContent = state.summaryVisible ? formatMoney(monthSummary.income) : hiddenText;
+  els.monthExpense.textContent = state.summaryVisible ? formatMoney(monthSummary.expense) : hiddenText;
+  els.monthTotal.textContent = state.summaryVisible ? formatMoney(monthSummary.total) : hiddenText;
 
   els.monthTotal.classList.toggle("negative", monthSummary.total < 0);
   els.summaryCard.classList.toggle("summary-hidden", !state.summaryVisible);
@@ -1311,18 +1281,10 @@ function renderSummary() {
   els.summaryVisibilityBtn.setAttribute("aria-label", state.summaryVisible ? t("hideAmount") : t("showAmount"));
   els.summaryVisibilityBtn.title = state.summaryVisible ? t("hideAmount") : t("showAmount");
 
-  if (els.summaryDateText) {
-    els.summaryDateText.firstChild.textContent = formatSummaryDate(new Date());
-  }
-
-  const loveTotal = readLoveIndexes().mrwang + readLoveIndexes().msgu;
-  if (els.summaryLoveToday) els.summaryLoveToday.textContent = `今日:+${loveTotal || 8}`;
-  if (els.summaryLoveTotal) els.summaryLoveTotal.textContent = `总计:${loveTotal ? loveTotal * 152 : 1520}`;
-
   if (state.summaryBg) {
-    els.summaryCard.style.setProperty("--summary-bg", `url("${state.summaryBg}")`);
+    els.summaryCard.style.backgroundImage = `linear-gradient(90deg, rgba(18, 28, 30, 0.48), rgba(18, 28, 30, 0.06)), url("${state.summaryBg}")`;
   } else {
-    els.summaryCard.style.removeProperty("--summary-bg");
+    els.summaryCard.style.backgroundImage = "";
   }
 }
 
@@ -1892,7 +1854,7 @@ function ensureBgCropperModal() {
 
     .bg-cropper-canvas {
       width: 100%;
-      aspect-ratio: 2.5 / 1;
+      aspect-ratio: 450 / 307;
       border-radius: 12px;
       background: #111;
       touch-action: none;
@@ -1945,7 +1907,7 @@ function ensureBgCropperModal() {
         <button id="closeBgCropperBtn" class="plain-icon" type="button">×</button>
       </div>
 
-      <canvas id="bgCropperCanvas" class="bg-cropper-canvas" width="900" height="360"></canvas>
+      <canvas id="bgCropperCanvas" class="bg-cropper-canvas" width="900" height="614"></canvas>
 
       <div class="bg-cropper-tools">
         <label>
@@ -2303,3 +2265,1119 @@ document.addEventListener("visibilitychange", function () {
     loadServerData();
   }
 });
+/* ===== 今日收支 + 爱情指数单页样式增强版 ===== */
+
+const LOVE_PERSONS = [
+  {
+    key: "mrwang",
+    name: "Mr.Wang",
+    storageKey: "love-index-mrwang-10-v3",
+    avatar: "wang.jpeg.jpeg"
+  },
+  {
+    key: "mrgu",
+    name: "Mr.Gu",
+    storageKey: "love-index-msgu-10-v3",
+    avatar: "aimee-gu.jpg"
+  }
+];
+
+function getLoveValue(person) {
+  return Math.max(
+    0,
+    Math.min(10, Number(localStorage.getItem(person.storageKey) || 0))
+  );
+}
+
+function setLoveValue(person, value) {
+  localStorage.setItem(person.storageKey, String(value));
+  if (typeof saveServerData === "function") {
+    saveServerData();
+  }
+}
+
+function loveMoodEmoji(value) {
+  if (value <= 3) return "😌";
+  if (value <= 6) return "☺️";
+  if (value <= 8) return "😊";
+  return "🥰";
+}
+
+function renderFloatingLovePanel() {
+  const summaryCard =
+    document.querySelector(".summary-card") ||
+    document.querySelector(".summary-panel") ||
+    document.querySelector(".summary-total") ||
+    document.querySelector("[data-summary-card]");
+
+  if (!summaryCard) return;
+
+  let panel = document.getElementById("homeLoveGlassPanel");
+
+  if (!panel) {
+    panel = document.createElement("div");
+    panel.id = "homeLoveGlassPanel";
+    panel.className = "home-love-glass-panel";
+    summaryCard.appendChild(panel);
+  }
+
+  panel.innerHTML = LOVE_PERSONS.map((person)=>{
+
+const value=getLoveValue(person);
+
+const hearts=Array.from({length:10})
+.map((_,i)=>{
+
+const active=i<value;
+
+return `
+<button
+class="home-love-heart ${active?"active":""}"
+data-love-person="${person.key}"
+data-love-value="${i+1}">
+${active?"♥":"♡"}
+</button>
+`;
+
+}).join("");
+
+return `
+
+<div class="home-love-row">
+
+<div class="home-love-avatar-wrap">
+<img
+class="home-love-avatar"
+src="${person.avatar}">
+</div>
+
+<div class="home-love-name">
+
+<strong>${person.name}</strong>
+
+<span>爱情指数</span>
+
+</div>
+
+<div class="home-love-hearts">
+
+${hearts}
+
+</div>
+
+<div class="home-love-mood">
+
+😌
+
+</div>
+
+</div>
+
+`;
+
+}).join("");
+
+  panel.querySelectorAll(".home-love-heart").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      const key = button.dataset.lovePerson;
+      const value = Number(button.dataset.loveValue);
+      const person = LOVE_PERSONS.find((item) => item.key === key);
+
+      if (!person) return;
+
+      setLoveValue(person, value);
+      renderFloatingLovePanel();
+      createHeartBurst(event.clientX, event.clientY);
+    });
+  });
+}
+
+function createHeartBurst(x, y) {
+  const count = 26;
+
+  for (let i = 0; i < count; i++) {
+    const heart = document.createElement("div");
+    heart.className = "floating-click-heart";
+    heart.textContent = Math.random() > 0.25 ? "♥" : "✦";
+
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 40 + Math.random() * 120;
+    const tx = Math.cos(angle) * distance;
+    const ty = Math.sin(angle) * distance - 80;
+
+    heart.style.left = `${x}px`;
+    heart.style.top = `${y}px`;
+    heart.style.setProperty("--tx", `${tx}px`);
+    heart.style.setProperty("--ty", `${ty}px`);
+    heart.style.animationDelay = `${Math.random() * 0.12}s`;
+
+    document.body.appendChild(heart);
+
+    setTimeout(() => {
+      heart.remove();
+    }, 1400);
+  }
+}
+
+function installHomeLoveStyle() {
+  if (document.getElementById("homeLoveStyle")) return;
+
+  const style = document.createElement("style");
+  style.id = "homeLoveStyle";
+  style.textContent=`
+
+.love-container,
+.love-board,
+.love-panel,
+#loveSection{
+display:none!important;
+}
+
+.summary-card,
+.summary-panel,
+.summary-total{
+
+position:relative!important;
+
+width:100%!important;
+
+min-height:560px!important;
+
+border-radius:36px!important;
+
+overflow:hidden!important;
+
+padding:28px!important;
+
+padding-bottom:220px!important;
+
+background-size:cover!important;
+background-position:center!important;
+
+filter:
+brightness(1.18)!important;
+
+}
+
+/* 标题 */
+
+.summary-title{
+
+font-size:28px!important;
+
+font-weight:900!important;
+
+color:#fff!important;
+
+margin-bottom:8px;
+
+}
+
+/* 日期 */
+
+.summary-date{
+
+font-size:14px!important;
+
+color:rgba(255,255,255,.85)!important;
+
+margin-bottom:50px;
+
+}
+
+/* 收入 支出 结余 */
+
+.summary-grid{
+
+display:grid!important;
+
+grid-template-columns:
+repeat(3,1fr)!important;
+
+align-items:center;
+
+text-align:center;
+
+margin-top:20px;
+
+}
+
+.summary-item{
+
+position:relative;
+
+padding:0 12px;
+
+}
+
+.summary-item:not(:last-child)::after{
+
+content:"";
+
+position:absolute;
+
+right:0;
+
+top:20px;
+
+height:90px;
+
+width:1px;
+
+background:
+rgba(255,255,255,.35);
+
+}
+
+.summary-label{
+
+font-size:18px!important;
+
+color:white!important;
+
+margin-bottom:14px;
+
+}
+
+.summary-value{
+
+font-size:34px!important;
+
+font-weight:900!important;
+
+color:white!important;
+
+}
+
+/* 毛玻璃 */
+
+.home-love-glass-panel{
+
+position:absolute;
+
+left:24px;
+
+right:24px;
+
+bottom:24px;
+
+padding:16px;
+
+display:grid;
+
+gap:10px;
+
+border-radius:28px;
+
+background:
+rgba(255,255,255,.08)!important;
+
+backdrop-filter:
+blur(35px);
+
+border:
+1px solid rgba(255,255,255,.15);
+
+}
+
+/* 两行 */
+
+.home-love-row{
+
+display:grid;
+
+grid-template-columns:
+60px 140px 1fr 50px;
+
+gap:14px;
+
+align-items:center;
+
+}
+
+.home-love-row+.home-love-row{
+
+border-top:
+1px solid rgba(255,255,255,.1);
+
+padding-top:10px;
+
+}
+
+.home-love-avatar-wrap{
+
+width:56px;
+height:56px;
+
+border-radius:50%;
+
+overflow:hidden;
+
+border:
+2px solid rgba(255,255,255,.6);
+
+}
+
+.home-love-avatar{
+
+width:100%;
+height:100%;
+object-fit:cover;
+
+}
+
+.home-love-name strong{
+
+font-size:18px!important;
+
+color:white;
+
+display:block;
+
+}
+
+.home-love-name span{
+
+font-size:12px;
+
+color:rgba(255,255,255,.8);
+
+}
+
+.home-love-hearts{
+
+display:flex;
+
+gap:6px;
+
+}
+
+.home-love-heart{
+
+font-size:28px!important;
+
+border:0;
+background:none;
+
+color:
+rgba(255,255,255,.7);
+
+}
+
+.home-love-heart.active{
+
+color:#ff5e86;
+
+filter:
+drop-shadow(0 0 10px pink);
+
+}
+
+.home-love-mood{
+
+font-size:26px;
+
+}
+`;
+  document.head.appendChild(style);
+}
+
+installHomeLoveStyle();
+
+const oldRenderForHomeLove = typeof render === "function" ? render : null;
+
+if (oldRenderForHomeLove) {
+  render = function () {
+    oldRenderForHomeLove();
+    setTimeout(renderFloatingLovePanel, 0);
+  };
+}
+
+window.addEventListener("load", () => {
+  installHomeLoveStyle();
+  renderFloatingLovePanel();
+});
+
+document.addEventListener("click", (event) => {
+  const target = event.target;
+
+  if (
+    target.closest(".home-love-heart") ||
+    target.closest("button") ||
+    target.closest("input") ||
+    target.closest("textarea") ||
+    target.closest("select")
+  ) {
+    return;
+  }
+
+  if (target.closest(".summary-card") || target.closest(".summary-panel") || target.closest(".summary-total")) {
+    createHeartBurst(event.clientX, event.clientY);
+  }
+});
+/* ===== 最终紧凑版：参考图比例 + 手机自适应 + 10颗心完整显示 ===== */
+(function () {
+  const WA_PATCH_ID = "wa-final-summary-love-style";
+
+  const PEOPLE = [
+    {
+      key: "mrwang",
+      name: "Mr.Wang",
+      storageKey: "love-index-mrwang-10-v3",
+      avatarKey: "love-avatar-mrwang-v1",
+      avatar: "wang.jpeg.jpeg"
+    },
+    {
+      key: "msgu",
+      name: "Ms.Gu",
+      storageKey: "love-index-msgu-10-v3",
+      avatarKey: "love-avatar-msgu-v1",
+      avatar: "aimee-gu.jpg"
+    }
+  ];
+
+  function money(value) {
+    return `¥${Number(value || 0).toLocaleString("zh-CN", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    })}`;
+  }
+
+  function getDateText() {
+    const date = state.selectedDate || new Date().toISOString().slice(0, 10);
+    const d = new Date(date);
+    const week = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"][d.getDay()];
+    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${week}`;
+  }
+
+  function getTodayRecords() {
+    return (state.records || []).filter((item) => item.date === state.selectedDate);
+  }
+
+  function getTotals() {
+    const records = getTodayRecords();
+    const income = records.filter((item) => item.type === "income").reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const expense = records.filter((item) => item.type === "expense").reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    return { income, expense, balance: income - expense };
+  }
+
+  function getLoveValue(person) {
+    return Math.max(0, Math.min(10, Number(localStorage.getItem(person.storageKey) || 0)));
+  }
+
+  function currentAvatar(person) {
+    return localStorage.getItem(person.avatarKey) || person.avatar;
+  }
+
+  function mood(value) {
+    if (value <= 2) return "😴";
+    if (value <= 4) return "😌";
+    if (value <= 6) return "😊";
+    if (value <= 8) return "🥰";
+    return "😍";
+  }
+
+  function currentBg() {
+    return state.summaryBg || localStorage.getItem(SUMMARY_BG_KEY) || "";
+  }
+
+  function installStyle() {
+    const old = document.getElementById(WA_PATCH_ID);
+    if (old) old.remove();
+
+    const style = document.createElement("style");
+    style.id = WA_PATCH_ID;
+    style.textContent = `
+      .love-container,
+      .love-board,
+      .love-panel,
+      .love-section,
+      #loveSection,
+      .love-growth,
+      .love-timeline,
+      .love-chart,
+      #loveGrowthChart,
+      #loveTimeline,
+      .home-love-glass-panel {
+        display: none !important;
+      }
+
+      .phone-shell {
+        width: min(440px, 100%) !important;
+        margin: 0 auto !important;
+        padding: 14px 12px 28px !important;
+      }
+
+      .summary-grid,
+      .summary-hero {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 0 12px !important;
+      }
+
+      .summary-card,
+      .summary-panel,
+      .summary-total {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 284px !important;
+        min-height: 284px !important;
+        max-height: 284px !important;
+        margin: 0 auto 14px !important;
+        padding: 0 !important;
+        border-radius: 28px !important;
+        overflow: hidden !important;
+        position: relative !important;
+        background: none !important;
+        box-shadow: 0 16px 38px rgba(139, 54, 88, .12) !important;
+        border: 1px solid rgba(255,255,255,.86) !important;
+      }
+
+      .wa-final-card {
+        position: absolute !important;
+        inset: 0 !important;
+        border-radius: 28px !important;
+        overflow: hidden !important;
+        background-size: cover !important;
+        background-position: center center !important;
+        color: #fff !important;
+      }
+
+      .wa-final-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(rgba(0,0,0,.08), rgba(0,0,0,.16));
+        z-index: 1;
+      }
+
+      .wa-bg-btn {
+        position: absolute !important;
+        top: 16px !important;
+        right: 16px !important;
+        z-index: 8 !important;
+        width: 34px !important;
+        height: 34px !important;
+        border: 0 !important;
+        border-radius: 12px !important;
+        background: rgba(255,255,255,.22) !important;
+        color: #fff !important;
+        font-size: 18px !important;
+        font-weight: 900 !important;
+        backdrop-filter: blur(16px) !important;
+      }
+
+      .wa-bg-btn svg {
+        width: 20px !important;
+        height: 20px !important;
+        display: block !important;
+        margin: auto !important;
+      }
+
+      .wa-bg-btn path,
+      .wa-bg-btn circle {
+        fill: none !important;
+        stroke: currentColor !important;
+        stroke-width: 2 !important;
+        stroke-linecap: round !important;
+        stroke-linejoin: round !important;
+      }
+
+      .wa-bg-file {
+        display: none !important;
+      }
+
+      .wa-final-content {
+        position: relative !important;
+        z-index: 2 !important;
+        height: 100% !important;
+        padding: 18px 20px !important;
+        box-sizing: border-box !important;
+        text-align: left !important;
+      }
+
+      .wa-title {
+        font-size: 32px !important;
+        font-weight: 900 !important;
+        line-height: 1 !important;
+        letter-spacing: 0 !important;
+        color: #fff !important;
+        text-align: left !important;
+        text-shadow: 0 2px 9px rgba(0,0,0,.38) !important;
+      }
+
+      .wa-date {
+        margin-top: 10px !important;
+        font-size: 15px !important;
+        line-height: 1.15 !important;
+        font-weight: 800 !important;
+        color: rgba(255,255,255,.92) !important;
+        text-align: left !important;
+        text-shadow: 0 2px 8px rgba(0,0,0,.34) !important;
+      }
+
+      .wa-money-grid {
+        position: absolute !important;
+        left: 18px !important;
+        right: 18px !important;
+        top: 92px !important;
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        column-gap: 12px !important;
+        align-items: start !important;
+        text-align: left !important;
+        z-index: 3 !important;
+      }
+
+      .wa-money-item {
+        position: relative !important;
+        min-width: 0 !important;
+        padding-left: 0 !important;
+      }
+
+      .wa-money-item:not(:last-child)::after {
+        content: "" !important;
+        position: absolute !important;
+        right: 0 !important;
+        top: 6px !important;
+        width: 1px !important;
+        height: 54px !important;
+        background: rgba(255,255,255,.42) !important;
+      }
+
+      .wa-money-label {
+        font-size: 15px !important;
+        font-weight: 900 !important;
+        color: rgba(255,255,255,.96) !important;
+        line-height: 1 !important;
+        margin-bottom: 11px !important;
+        text-shadow: 0 2px 8px rgba(0,0,0,.36) !important;
+      }
+
+      .wa-money-value {
+        display: inline-block !important;
+        max-width: none !important;
+        font-size: 18px !important;
+        font-weight: 900 !important;
+        color: rgba(255,255,255,.98) !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
+        transform: none !important;
+        transform-origin: left center !important;
+        text-shadow: 0 3px 10px rgba(0,0,0,.36) !important;
+      }
+
+      .wa-love-glass {
+        position: absolute !important;
+        left: 14px !important;
+        right: 14px !important;
+        bottom: 12px !important;
+        z-index: 5 !important;
+        display: grid !important;
+        gap: 4px !important;
+        padding: 9px 12px !important;
+        border-radius: 22px !important;
+        background: transparent !important;
+        border: 0 !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        box-shadow: none !important;
+      }
+
+      .wa-love-row {
+        display: grid !important;
+        grid-template-columns: 42px minmax(0, 1fr) !important;
+        gap: 7px !important;
+        align-items: center !important;
+        min-height: 43px !important;
+      }
+
+      .wa-love-row + .wa-love-row {
+        padding-top: 5px !important;
+        border-top: 0 !important;
+      }
+
+      .wa-avatar-wrap {
+        position: relative !important;
+        width: 40px !important;
+        height: 40px !important;
+      }
+
+      .wa-avatar {
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 999px !important;
+        overflow: hidden !important;
+        border: 2px solid rgba(255,255,255,.88) !important;
+        background: rgba(255,255,255,.45) !important;
+      }
+
+      .wa-avatar img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        display: block !important;
+      }
+
+      .wa-avatar-edit {
+        position: absolute !important;
+        right: -4px !important;
+        bottom: -4px !important;
+        z-index: 2 !important;
+        width: 18px !important;
+        height: 18px !important;
+        border: 1px solid rgba(255,255,255,.74) !important;
+        border-radius: 50% !important;
+        background: rgba(244,102,126,.88) !important;
+        color: #fff !important;
+        display: grid !important;
+        place-items: center !important;
+        padding: 0 !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,.20) !important;
+      }
+
+      .wa-avatar-edit svg {
+        width: 10px !important;
+        height: 10px !important;
+        display: block !important;
+      }
+
+      .wa-avatar-edit path {
+        fill: none !important;
+        stroke: currentColor !important;
+        stroke-width: 2.2 !important;
+        stroke-linecap: round !important;
+        stroke-linejoin: round !important;
+      }
+
+      .wa-avatar-input {
+        display: none !important;
+      }
+
+      .wa-name {
+        min-width: 0 !important;
+        display: grid !important;
+        justify-items: start !important;
+      }
+
+      .wa-name strong {
+        display: block !important;
+        font-size: 16px !important;
+        line-height: 1 !important;
+        font-weight: 900 !important;
+        color: #fff !important;
+        white-space: nowrap !important;
+        text-align: left !important;
+        text-shadow: 0 2px 8px rgba(0,0,0,.28) !important;
+      }
+
+      .wa-love-line {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 6px !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        margin-top: 6px !important;
+      }
+
+      .wa-hearts {
+        display: grid !important;
+        grid-template-columns: repeat(10, 1fr) !important;
+        gap: 1px !important;
+        min-width: 0 !important;
+        width: min(196px, calc(100% - 36px)) !important;
+        max-width: 196px !important;
+        margin-top: 0 !important;
+        align-items: center !important;
+        flex: 0 1 196px !important;
+      }
+
+      .wa-heart {
+        width: 100% !important;
+        min-width: 0 !important;
+        height: 20px !important;
+        border: 0 !important;
+        background: transparent !important;
+        padding: 0 !important;
+        color: rgba(255,255,255,.72) !important;
+        cursor: pointer !important;
+        display: grid !important;
+        place-items: center !important;
+      }
+
+      .wa-heart svg {
+        width: 19px !important;
+        height: 18px !important;
+        display: block !important;
+        overflow: visible !important;
+        filter: drop-shadow(0 1px 2px rgba(0,0,0,.16)) !important;
+      }
+
+      .wa-heart path {
+        fill: transparent !important;
+        stroke: rgba(255,255,255,.76) !important;
+        stroke-width: 1.7 !important;
+        stroke-linejoin: round !important;
+      }
+
+      .wa-heart.active {
+        animation: none !important;
+      }
+
+      .wa-heart.active path {
+        fill: #ff5f78 !important;
+        stroke: rgba(255,255,255,.58) !important;
+        filter: drop-shadow(0 0 5px rgba(255,95,120,.55)) !important;
+      }
+
+      .wa-mood {
+        width: 30px !important;
+        height: 30px !important;
+        flex: 0 0 30px !important;
+        display: grid !important;
+        place-items: center !important;
+        font-size: 26px !important;
+        line-height: 1 !important;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,.18)) !important;
+      }
+
+      .wa-click-heart {
+        position: fixed;
+        z-index: 999999;
+        pointer-events: none;
+        left: 0;
+        top: 0;
+        font-size: 20px;
+        color: #ff78a0;
+        text-shadow: 0 0 10px rgba(255,120,160,.85);
+        animation: waHeartBurst 1.25s ease-out forwards;
+      }
+
+      @keyframes waHeartBurst {
+        0% { opacity: 1; transform: translate(-50%, -50%) scale(.8); }
+        100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1.35) rotate(18deg); }
+      }
+
+      @media (max-width: 390px) {
+        .phone-shell { padding-inline: 8px !important; }
+
+        .summary-card,
+        .summary-panel,
+        .summary-total {
+          height: 268px !important;
+          min-height: 268px !important;
+          max-height: 268px !important;
+          border-radius: 24px !important;
+        }
+
+        .wa-final-card { border-radius: 24px !important; }
+        .wa-final-content { padding: 18px 16px !important; }
+        .wa-title { font-size: 29px !important; }
+        .wa-date { font-size: 13px !important; }
+        .wa-money-grid { top: 86px !important; left: 14px !important; right: 14px !important; column-gap: 14px !important; }
+        .wa-money-label { font-size: 14px !important; margin-bottom: 10px !important; }
+        .wa-money-value { font-size: 16px !important; transform: none !important; }
+        .wa-money-item:not(:last-child)::after { height: 50px !important; }
+        .wa-love-glass { left: 10px !important; right: 10px !important; bottom: 10px !important; padding: 9px 10px !important; border-radius: 20px !important; }
+        .wa-love-row { grid-template-columns: 38px minmax(0, 1fr) !important; gap: 5px !important; min-height: 42px !important; }
+        .wa-avatar-wrap,
+        .wa-avatar { width: 36px !important; height: 36px !important; }
+        .wa-avatar-edit { width: 17px !important; height: 17px !important; right: -4px !important; bottom: -4px !important; }
+        .wa-name strong { font-size: 15px !important; }
+        .wa-love-line { gap: 5px !important; margin-top: 5px !important; }
+        .wa-hearts { width: min(176px, calc(100% - 31px)) !important; max-width: 176px !important; }
+        .wa-heart { height: 18px !important; }
+        .wa-heart svg { width: 17px !important; height: 16px !important; }
+        .wa-mood { width: 26px !important; height: 26px !important; font-size: 23px !important; }
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  function createLoveBurst(x, y) {
+    for (let i = 0; i < 18; i++) {
+      const item = document.createElement("div");
+      item.className = "wa-click-heart";
+      item.textContent = Math.random() > 0.25 ? "♥" : "✦";
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 30 + Math.random() * 80;
+      item.style.left = `${x}px`;
+      item.style.top = `${y}px`;
+      item.style.setProperty("--tx", `${Math.cos(angle) * distance}px`);
+      item.style.setProperty("--ty", `${Math.sin(angle) * distance - 65}px`);
+      document.body.appendChild(item);
+      setTimeout(() => item.remove(), 1250);
+    }
+  }
+
+  function resizeAvatarImage(imageData, done) {
+    const img = new Image();
+
+    img.onload = () => {
+      const size = 420;
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+
+      const ctx = canvas.getContext("2d");
+      const scale = Math.max(size / img.width, size / img.height);
+      const drawW = img.width * scale;
+      const drawH = img.height * scale;
+      const x = (size - drawW) / 2;
+      const y = (size - drawH) / 2;
+
+      ctx.clearRect(0, 0, size, size);
+      ctx.drawImage(img, x, y, drawW, drawH);
+      done(canvas.toDataURL("image/jpeg", 0.88));
+    };
+
+    img.src = imageData;
+  }
+
+  function updateAvatar(person, file) {
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.addEventListener("load", () => {
+      resizeAvatarImage(String(reader.result || ""), (avatarData) => {
+        localStorage.setItem(person.avatarKey, avatarData);
+        renderFinalSummaryLove();
+      });
+    });
+
+    reader.readAsDataURL(file);
+  }
+
+  function renderFinalSummaryLove() {
+    installStyle();
+
+    const card = document.querySelector(".summary-card") || document.querySelector(".summary-panel") || document.querySelector(".summary-total");
+    if (!card) return;
+
+    const totals = getTotals();
+    const bg = currentBg();
+
+    const loveRows = PEOPLE.map((person) => {
+      const value = getLoveValue(person);
+      const hearts = Array.from({ length: 10 }).map((_, index) => {
+        const active = index < value;
+        return `
+          <button class="wa-heart ${active ? "active" : ""}" type="button" data-person="${person.key}" data-value="${index + 1}" aria-label="${index + 1}">
+            <svg viewBox="0 0 24 22" aria-hidden="true" focusable="false">
+              <path d="M12 20.3C7.5 16.5 2.4 12.2 2.4 7.1C2.4 4.2 4.6 2 7.4 2C9.2 2 10.9 2.9 12 4.3C13.1 2.9 14.8 2 16.6 2C19.4 2 21.6 4.2 21.6 7.1C21.6 12.2 16.5 16.5 12 20.3Z"></path>
+            </svg>
+          </button>
+        `;
+      }).join("");
+
+      return `
+        <div class="wa-love-row">
+          <div class="wa-avatar-wrap">
+            <div class="wa-avatar"><img src="${currentAvatar(person)}" alt="${person.name}"></div>
+            <input class="wa-avatar-input" id="waAvatarInput-${person.key}" type="file" accept="image/*">
+            <button class="wa-avatar-edit" type="button" data-avatar-person="${person.key}" aria-label="编辑${person.name}头像" title="编辑头像">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M4 20h4.2L19 9.2 14.8 5 4 15.8V20Z"></path>
+                <path d="M13.8 6 18 10.2"></path>
+              </svg>
+            </button>
+          </div>
+          <div class="wa-name">
+            <strong>${person.name}</strong>
+            <div class="wa-love-line">
+              <div class="wa-hearts">${hearts}</div>
+              <div class="wa-mood" aria-label="${mood(value)}">${mood(value)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    card.innerHTML = `
+      <div class="wa-final-card" style="background-image:url('${bg}')">
+        <input class="wa-bg-file" id="waBgFileInput" type="file" accept="image/*">
+        <button class="wa-bg-btn" type="button" id="waBgChangeBtn" aria-label="选择背景图片" title="选择背景图片">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M4 7h3l1.5-2h7L17 7h3v12H4z"></path>
+            <circle cx="12" cy="13" r="3.5"></circle>
+            <path d="M18.5 10.5h.01"></path>
+          </svg>
+        </button>
+        <div class="wa-final-content">
+          <div class="wa-title">今日收支</div>
+          <div class="wa-date">${getDateText()}</div>
+          <div class="wa-money-grid">
+            <div class="wa-money-item"><div class="wa-money-label">收入</div><div class="wa-money-value">${money(totals.income)}</div></div>
+            <div class="wa-money-item"><div class="wa-money-label">支出</div><div class="wa-money-value">${money(totals.expense)}</div></div>
+            <div class="wa-money-item"><div class="wa-money-label">结余</div><div class="wa-money-value">${money(totals.balance)}</div></div>
+          </div>
+        </div>
+        <div class="wa-love-glass">${loveRows}</div>
+      </div>
+    `;
+
+    card.querySelectorAll(".wa-heart").forEach((btn) => {
+      btn.addEventListener("click", (event) => {
+        const person = PEOPLE.find((item) => item.key === btn.dataset.person);
+        if (!person) return;
+        localStorage.setItem(person.storageKey, String(Number(btn.dataset.value)));
+        if (typeof saveServerData === "function") saveServerData();
+        createLoveBurst(event.clientX, event.clientY);
+        renderFinalSummaryLove();
+      });
+    });
+
+    card.querySelectorAll(".wa-avatar-edit").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const person = PEOPLE.find((item) => item.key === btn.dataset.avatarPerson);
+        const input = person ? card.querySelector(`#waAvatarInput-${person.key}`) : null;
+        if (input) input.click();
+      });
+    });
+
+    card.querySelectorAll(".wa-avatar-input").forEach((input) => {
+      input.addEventListener("change", () => {
+        const key = input.id.replace("waAvatarInput-", "");
+        const person = PEOPLE.find((item) => item.key === key);
+        const file = input.files && input.files[0];
+        if (person && file) updateAvatar(person, file);
+        input.value = "";
+      });
+    });
+
+    const bgBtn = card.querySelector("#waBgChangeBtn");
+    const bgInput = card.querySelector("#waBgFileInput");
+    if (bgBtn && bgInput) bgBtn.addEventListener("click", () => bgInput.click());
+    if (bgInput) {
+      bgInput.addEventListener("change", () => {
+        const file = bgInput.files && bgInput.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.addEventListener("load", () => {
+          if (typeof openBgCropper === "function") {
+            openBgCropper(String(reader.result || ""));
+          }
+          bgInput.value = "";
+        });
+        reader.readAsDataURL(file);
+      });
+    }
+  }
+
+  const oldRender = typeof render === "function" ? render : null;
+
+  if (oldRender && !window.__WA_FINAL_RENDER_PATCHED_COMPACT__) {
+    window.__WA_FINAL_RENDER_PATCHED_COMPACT__ = true;
+    render = function () {
+      oldRender();
+      setTimeout(renderFinalSummaryLove, 0);
+    };
+  }
+
+  installStyle();
+  setTimeout(renderFinalSummaryLove, 0);
+})();

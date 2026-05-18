@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>日历记账</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="styles.css">
 
     <link rel="manifest" href="manifest.webmanifest">
@@ -494,7 +490,7 @@
         <button type="button" data-lang="ko">한국어</button>
       </div>
 
-      <section class="summary-hero" aria-label="本月汇总" data-i18n-aria="monthlySummary">
+      <section class="summary-grid summary-hero" aria-label="本月汇总" data-i18n-aria="monthlySummary">
         <article class="summary-card total">
           <input id="summaryBgInput" class="summary-bg-input" type="file" accept="image/*">
 
@@ -507,33 +503,17 @@
           </button>
 
           <div class="summary-main">
-            <div class="summary-title" data-i18n="todaySummary">今日收支</div>
-            <div class="summary-date" id="summaryDateText">
-              2026年5月18日 星期一
+            <span class="summary-title" data-i18n="todaySummary">今日收支</span>
+            <span class="summary-balance-line">
+              <span class="summary-balance-label" data-i18n="balance">结余</span>
               <button id="summaryVisibilityBtn" class="summary-eye-btn" type="button" aria-label="隐藏金额" title="隐藏金额"></button>
-            </div>
+            </span>
+            <strong id="monthTotal">¥0</strong>
           </div>
 
-          <div class="summary-grid">
-            <div class="summary-item">
-              <div class="summary-label" data-i18n="income">收入</div>
-              <div class="summary-value" id="monthIncome">¥0<small>.00</small></div>
-            </div>
-
-            <div class="summary-item">
-              <div class="summary-label" data-i18n="expense">支出</div>
-              <div class="summary-value" id="monthExpense">¥0<small>.00</small></div>
-            </div>
-
-            <div class="summary-item">
-              <div class="summary-label" data-i18n="balance">结余</div>
-              <div class="summary-value" id="monthTotal">¥0<small>.00</small></div>
-            </div>
-          </div>
-
-          <div class="summary-love">
-            <div>♡ 爱情指数</div>
-            <div><span id="summaryLoveToday">今日:+8</span> ❤️ <span id="summaryLoveTotal">总计:1520</span></div>
+          <div class="summary-bottom">
+            <span><b data-i18n="totalIncome">总收入</b> <strong id="monthIncome">¥0</strong></span>
+            <span><b data-i18n="totalExpense">总开支</b> <strong id="monthExpense">¥0</strong></span>
           </div>
         </article>
       </section>
@@ -823,5 +803,39 @@
         renderLove("msgu");
       });
     </script>
+  <style>
+
+/* 只改爱情指数，不动顶部整体布局 */
+
+.home-love-glass-panel{
+    background: rgba(255,255,255,.85) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+
+    width: calc(100% - 40px) !important;
+
+    left:20px !important;
+    right:20px !important;
+
+    bottom:18px !important;
+
+    border-radius:24px !important;
+}
+
+/* 爱情指数内部比例 */
+.love-row img{
+    width:48px !important;
+    height:48px !important;
+
+    object-fit:cover !important;
+
+    border-radius:50% !important;
+}
+
+.love-heart{
+    font-size:24px !important;
+}
+
+</style>
   </body>
 </html>
