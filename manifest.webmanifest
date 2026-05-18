@@ -1,8 +1,9 @@
 {
   "name": "Aimee Gu 记账",
   "short_name": "记账",
-  "start_url": "./?source=pwa",
-  "scope": "./",
+  "id": "/aimee-ledger/",
+  "start_url": "/aimee-ledger/index.html",
+  "scope": "/aimee-ledger/",
   "display": "standalone",
   "background_color": "#edf1ee",
   "theme_color": "#245ec4",

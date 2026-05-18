@@ -1,13 +1,14 @@
-const CACHE_NAME = "aimee-ledger-pwa-v13";
+const CACHE_NAME = "aimee-ledger-pwa-v14";
 
 const APP_FILES = [
-  "./",
-  "./index.html",
-  "./styles.css",
-  "./app.js",
-  "./aimee-gu.jpg",
-  "./wang.jpeg.jpeg",
-  "./manifest.webmanifest"
+  "/aimee-ledger/",
+  "/aimee-ledger/index.html",
+  "/aimee-ledger/styles.css",
+  "/aimee-ledger/app.js",
+  "/aimee-ledger/aimee-gu.jpg",
+  "/aimee-ledger/wang.jpeg.jpeg",
+  "/aimee-ledger/reference-bg.png",
+  "/aimee-ledger/manifest.webmanifest"
 ];
 
 self.addEventListener("install", (event) => {
